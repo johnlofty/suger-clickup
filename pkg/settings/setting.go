@@ -9,6 +9,7 @@ import (
 type config struct {
 	ClickupConfig clickupConfig `mapstructure:"clickup"`
 	DBConfig      dbConfig      `mapstructure:"database"`
+	JWT           jwtConfig     `mapstructure:"jwt"`
 }
 
 var conf *config
@@ -25,6 +26,10 @@ type dbConfig struct {
 type clickupConfig struct {
 	Secret string
 	ListId string
+}
+
+type jwtConfig struct {
+	Secret string
 }
 
 func (c dbConfig) URI() string {

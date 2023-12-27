@@ -17,6 +17,5 @@ func init() {
 func main() {
 	app := fiber.New()
 	route.BuildRoute(app)
-
 	app.Listen("localhost:3000")
 }

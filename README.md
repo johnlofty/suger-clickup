@@ -2,4 +2,6 @@
 Integrate clickup to suger
 
 # Structure
-* user login
+* user register/login
+* fiber auth middle
+* task list/create/edit

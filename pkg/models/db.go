@@ -12,9 +12,8 @@ import (
 var schema = `
 CREATE TABLE IF NOT EXISTS accounts (
 	user_id serial PRIMARY KEY,
-	username VARCHAR (50) UNIQUE NOT NULL,
-	password VARCHAR (50) NOT NULL,
 	email VARCHAR (255) UNIQUE NOT NULL,
+	password VARCHAR (50) NOT NULL,
 	created_at TIMESTAMP NOT NULL
 );
 
@@ -32,7 +31,6 @@ CREATE TABLE IF NOT EXISTS account_orgs (
 	FOREIGN KEY (user_id)
 		REFERENCES accounts (user_id)
 )
-
 `
 
 var db *sqlx.DB
@@ -54,4 +52,9 @@ func setupDB() {
 	if err != nil {
 		panic(err)
 	}
+	db.MustExec(schema)
+}
+
+func GetDB() *sqlx.DB {
+	return db
 }
