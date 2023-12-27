@@ -1,4 +1,4 @@
-package handlers
+package clients
 
 import (
 	"fmt"
@@ -7,7 +7,12 @@ import (
 	"github.com/imroc/req/v3"
 )
 
-type clickupHandler struct {
+type ClickUpClient interface {
+	CreateTask(string, string) (string, error)
+	// TODO add rest methods
+}
+
+type clickupClient struct {
 	AuthenticateKey string
 	ListId          string
 }
@@ -16,14 +21,14 @@ type taskCreateResponse struct {
 	TaskId string `json:"id"`
 }
 
-func NewClickupHandler(key, listID string) *clickupHandler {
-	return &clickupHandler{
+func NewClickupHandler(key, listID string) ClickUpClient {
+	return &clickupClient{
 		AuthenticateKey: key,
 		ListId:          listID,
 	}
 }
 
-func (h *clickupHandler) CreateTask(name, desp string) (string, error) {
+func (h *clickupClient) CreateTask(name, desp string) (string, error) {
 	client := req.C().DevMode()
 	var res taskCreateResponse
 	task := models.Task{

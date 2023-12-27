@@ -1,11 +1,13 @@
 package models
 
+import "time"
+
 type User struct {
-	ID        int32  `json:"id,omitempty"`
-	Password  string `json:"password,omitempty" db:"password"`
-	Email     string `json:"email,omitempty" db:"email"`
-	CreatedAt int64  `json:"created_at,omitempty" db:"created_at"`
-	OrgId     int32  `json:"org_id,omitempty"`
+	ID        int32     `json:"id,omitempty" db:"user_id"`
+	Password  string    `json:"password,omitempty" db:"password"`
+	Email     string    `json:"email,omitempty" db:"email"`
+	CreatedAt time.Time `json:"created_at,omitempty" db:"created_at"`
+	OrgId     int32     `json:"org_id,omitempty" db:"org_id"`
 }
 
 type RegisterRequest struct {

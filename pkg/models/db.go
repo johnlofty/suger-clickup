@@ -52,7 +52,7 @@ func setupDB() {
 	if err != nil {
 		panic(err)
 	}
-	db.MustExec(schema)
+	db.Exec(schema)
 }
 
 func GetDB() *sqlx.DB {

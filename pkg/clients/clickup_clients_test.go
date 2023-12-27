@@ -1,11 +1,11 @@
-package handlers
+package clients
 
 import (
 	"testing"
 )
 
-func GetTestHandler() *clickupHandler {
-	return &clickupHandler{
+func GetTestHandler() *clickupClient {
+	return &clickupClient{
 		AuthenticateKey: "pk_84243826_RMFURM9C270CLPWH47AEQA2SPJ7PTXJZ",
 		ListId:          "901700864939",
 	}

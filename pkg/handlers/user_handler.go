@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"suger-clickup/pkg/models"
-	"suger-clickup/pkg/repository"
+	"suger-clickup/pkg/services"
 	"suger-clickup/pkg/settings"
 	"time"
 
@@ -10,14 +10,24 @@ import (
 	jtoken "github.com/golang-jwt/jwt/v4"
 )
 
-func Register(c *fiber.Ctx) error {
+type handler struct {
+	s *services.Service
+}
+
+func NewHandler(s *services.Service) *handler {
+	return &handler{
+		s: s,
+	}
+}
+
+func (h *handler) Register(c *fiber.Ctx) error {
 	registerRequset := new(models.RegisterRequest)
 	if err := c.BodyParser(registerRequset); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),
 		})
 	}
-	err := repository.CreateUserByCredentials(registerRequset.Email, registerRequset.Password)
+	err := h.s.CreateUser(registerRequset.Email, registerRequset.Password)
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"error": err.Error(),
@@ -26,7 +36,7 @@ func Register(c *fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusOK)
 }
 
-func Login(c *fiber.Ctx) error {
+func (h *handler) Login(c *fiber.Ctx) error {
 	loginRequest := new(models.LoginRequest)
 	if err := c.BodyParser(loginRequest); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -34,7 +44,7 @@ func Login(c *fiber.Ctx) error {
 		})
 	}
 
-	user, err := repository.FindUserByCredentials(loginRequest.Email, loginRequest.Password)
+	user, err := h.s.GetUser(loginRequest.Email, loginRequest.Password)
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"error": err.Error(),
