@@ -1,9 +1,11 @@
 package handlers
 
 import (
+	"strconv"
 	"suger-clickup/pkg/models"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/log"
 )
 
 func (h *Handler) CreateTicket(c *fiber.Ctx) error {
@@ -53,18 +55,91 @@ func (h *Handler) GetTickets(c *fiber.Ctx) error {
 	})
 }
 
-func (h *Handler) EditTicket(c *fiber.Ctx) error {
+func (h *Handler) EditTicketDescription(c *fiber.Ctx) error {
+	req := new(models.TicketUpdateRequest)
+	if err := c.BodyParser(req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+	user := h.GetUser(c)
+	ticketID := c.Params("ticket_id")
+	log.Debugf("getting ticketId:%s", ticketID)
+	err := h.s.EditTicketDescription(user, ticketID, req.Description)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
 
-	return nil
+	return c.SendStatus(fiber.StatusOK)
 }
 
 func (h *Handler) ReopenTicket(c *fiber.Ctx) error {
-	return nil
+	user := h.GetUser(c)
+	ticketID := c.Params("ticket_id")
+	log.Debugf("getting ticketId:%s", ticketID)
+	err := h.s.ReopenTask(user, ticketID)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.SendStatus(fiber.StatusOK)
+}
+
+func (h *Handler) SetTicketAssignee(c *fiber.Ctx) error {
+	req := new(models.TicketUpdateRequest)
+	if err := c.BodyParser(req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+	user := h.GetUser(c)
+	ticketID := c.Params("ticket_id")
+	log.Debugf("getting ticketId:%s", ticketID)
+	err := h.s.SetTaskAssignee(user, ticketID, req.Assignee)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.SendStatus(fiber.StatusOK)
+}
+
+func (h *Handler) DelTicketAssignee(c *fiber.Ctx) error {
+	req := new(models.TicketUpdateRequest)
+	if err := c.BodyParser(req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+	user := h.GetUser(c)
+	ticketID := c.Params("ticket_id")
+	assigneeID := c.Params("assignee_id")
+	assigneeUserID, err := strconv.ParseInt(assigneeID, 10, 32)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+	log.Debugf("getting ticketId:%s assignee_id:%s", ticketID, assigneeID)
+	err = h.s.DelTaskAssignee(user, ticketID, int32(assigneeUserID))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.SendStatus(fiber.StatusOK)
 }
 
 func (h *Handler) GetComments(c *fiber.Ctx) error {
 	return nil
 }
+
 func (h *Handler) AddComment(c *fiber.Ctx) error {
 	return nil
 }

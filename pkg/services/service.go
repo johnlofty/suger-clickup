@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"suger-clickup/pkg/clients"
 	"suger-clickup/pkg/dao"
 	"suger-clickup/pkg/models"
@@ -63,10 +64,13 @@ func (s *Service) CreateTask(userID int32, r *models.CreateTaskRequest) (string,
 		return "", errors.New("invalid user")
 	}
 	task := &models.Task{
-		Name:        r.Name,
-		Description: r.Description,
-		DueDate:     r.DueTime,
-		DueDateTime: r.DueTime > 0,
+		Name:          r.Name,
+		Description:   r.Description,
+		DueDate:       r.DueTime,
+		DueDateTime:   true,
+		StartDate:     r.StartTime,
+		StartDateTime: true,
+		Priority:      r.Priority,
 	}
 	task.AddCreator(fmt.Sprintf("%d", userID))
 	task.AddOrgId(fmt.Sprintf("%d", org.OrgId))
@@ -95,14 +99,20 @@ func (s *Service) GetTickets(userID, page, pageSize int32) ([]models.Task, error
 		return nil, errors.New("invalid user")
 	}
 	tickets, err := s.dao.GetTicketsByOrgID(user.OrgId, page, pageSize)
+	log.Debugf("tickets:%+v err:%v", tickets, err)
 	if err != nil {
 		return nil, err
 	}
 	data := make([]models.Task, 0)
 	for _, ticket := range tickets {
 		clickTask, err := s.client.GetTask(ticket.TicketID)
+		log.Debugf("clickTask:%v err:%v", clickTask, err)
 		if err != nil {
-			return nil, err
+			if err == clients.ErrTaskNotFound {
+				err = s.dao.DeleteTicket(ticket.TicketID)
+				log.Warnf("delete ticket:%s err:%v", ticket.TicketID, err)
+			}
+			continue
 		}
 		task := models.Task{
 			ID:          clickTask.ID,
@@ -111,6 +121,18 @@ func (s *Service) GetTickets(userID, page, pageSize int32) ([]models.Task, error
 			Status:      clickTask.Status.Status,
 			StartDate:   ticket.CreatedAt.Unix(),
 		}
+		dueDate, err := strconv.ParseInt(clickTask.DueDate, 10, 64)
+		if err == nil && dueDate != 0 {
+			task.DueDate = dueDate / 1000
+		}
+		priority, err := strconv.ParseInt(clickTask.Priority.ID, 10, 64)
+		if err == nil {
+			task.Priority = int32(priority)
+		}
+		assignees, err := s.dao.GetTicketAssignees(ticket.TicketID)
+		if err == nil {
+			task.Assignees = assignees
+		}
 		data = append(data, task)
 	}
 	return data, nil
@@ -118,4 +140,63 @@ func (s *Service) GetTickets(userID, page, pageSize int32) ([]models.Task, error
 
 func (s *Service) GetTicketsCount(orgID int32) (int32, error) {
 	return s.dao.GetTicketsCount(orgID)
+}
+
+func (s *Service) EditTicketDescription(user *models.User, ticketID, description string) error {
+	ticket, err := s.dao.GetTicket(ticketID)
+	if err != nil {
+		return err
+	}
+	if ticket.OrgID != user.OrgId {
+		return errors.New("invalid ticketID")
+	}
+	err = s.client.UpdateTaskDescription(ticketID, description)
+	return err
+}
+
+func (s *Service) ReopenTask(user *models.User, ticketID string) error {
+	ticket, err := s.dao.GetTicket(ticketID)
+	if err != nil {
+		return err
+	}
+	if ticket.OrgID != user.OrgId {
+		return errors.New("invalid ticketID")
+	}
+	err = s.client.ReopenTask(ticketID)
+	return err
+}
+
+func (s *Service) SetTaskAssignee(user *models.User, ticketID string,
+	assignUserID int32) error {
+	ticket, err := s.dao.GetTicket(ticketID)
+	if err != nil {
+		return err
+	}
+	if ticket.OrgID != user.OrgId {
+		return errors.New("invalid ticketID")
+	}
+	assignUser, err := s.dao.GetUserByID(assignUserID)
+	if err != nil || assignUser.OrgId != user.OrgId {
+		return errors.New("invalid user")
+	}
+	err = s.dao.AddTicketAssignee(ticketID, assignUserID)
+	return err
+}
+
+func (s *Service) DelTaskAssignee(user *models.User, ticketID string,
+	assignUserID int32) error {
+	ticket, err := s.dao.GetTicket(ticketID)
+	if err != nil {
+		return err
+	}
+	if ticket.OrgID != user.OrgId {
+		return errors.New("invalid ticketID")
+	}
+	assignUser, err := s.dao.GetUserByID(assignUserID)
+	if err != nil || assignUser.OrgId != user.OrgId {
+		return errors.New("invalid user")
+	}
+
+	err = s.dao.DelTicketAssignee(ticketID, assignUserID)
+	return err
 }

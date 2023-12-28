@@ -13,6 +13,7 @@ import (
 
 func init() {
 	settings.Setup()
+	clients.Setup()
 	models.Setup()
 
 }

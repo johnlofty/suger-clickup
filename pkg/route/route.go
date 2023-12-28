@@ -37,7 +37,10 @@ func BuildRoute(app *fiber.App, s *services.Service) {
 	// ticket
 	apiV1.Get("/tickets", h.GetTickets)
 	apiV1.Post("/tickets", h.CreateTicket)
-	apiV1.Patch("/tickets/:ticket_id", h.EditTicket)
+	apiV1.Patch("/tickets/:ticket_id/description", h.EditTicketDescription)
+	apiV1.Patch("/tickets/:ticket_id/reopen", h.ReopenTicket)
+	apiV1.Patch("/tickets/:ticket_id/assignee", h.SetTicketAssignee)
+	apiV1.Delete("/tickets/:ticket_id/assignee/:assignee_id", h.DelTicketAssignee)
 
 	// comments
 	apiV1.Get("/ticket/:ticket_id/comments", h.GetComments)

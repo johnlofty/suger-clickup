@@ -24,6 +24,11 @@ type DBDao interface {
 	CreateTicket(ticket *models.Ticket) error
 	GetTicketsByOrgID(orgID, page, pageSize int32) ([]models.Ticket, error)
 	GetTicketsCount(orgID int32) (int32, error)
+	GetTicket(ticketID string) (models.Ticket, error)
+	DeleteTicket(ticketID string) error
+	AddTicketAssignee(ticketID string, userID int32) error
+	DelTicketAssignee(ticketID string, userID int32) error
+	GetTicketAssignees(ticketID string) ([]int32, error)
 }
 type postgresDao struct {
 	db *sqlx.DB
@@ -94,7 +99,8 @@ func (d *postgresDao) GetOrg(orgId int32) (*models.Org, error) {
 
 func (d *postgresDao) GetTicketsCount(orgID int32) (int32, error) {
 	var count int32
-	if err := d.db.Get(&count, "SELECT COUNT(*) FROM tickets"); err != nil {
+	if err := d.db.Get(&count, "SELECT COUNT(*) FROM tickets WHERE org_id=$1",
+		orgID); err != nil {
 		return 0, err
 	}
 	return count, nil
@@ -106,7 +112,7 @@ func (d *postgresDao) GetTicketsByOrgID(orgID, page, pageSize int32) ([]models.T
 		LIMIT $2 OFFSET $3
 	`
 	var result []models.Ticket
-	err := d.db.Select(&result, sql, orgID, page, offset)
+	err := d.db.Select(&result, sql, orgID, pageSize, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -123,4 +129,47 @@ func (d *postgresDao) CreateTicket(ticket *models.Ticket) error {
 		return nil
 	}
 	return errors.New("fail to insert user")
+}
+
+func (d *postgresDao) GetTicket(ticketID string) (models.Ticket, error) {
+	sql := `SELECT * FROM tickets WHERE ticket_id=$1`
+	ticket := models.Ticket{}
+	if err := d.db.Get(&ticket, sql, ticketID); err != nil {
+		return ticket, err
+	}
+	return ticket, nil
+}
+
+func (d *postgresDao) DeleteTicket(ticketID string) error {
+	sql := `DELETE FROM tickets WHERE ticket_id=$1`
+	if _, err := d.db.Exec(sql, ticketID); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (d *postgresDao) AddTicketAssignee(ticketID string, userID int32) error {
+	sql := `INSERT INTO ticket_assignees (ticket_id, assignee_id) VALUES ($1, $2)`
+	if _, err := d.db.Exec(sql, ticketID, userID); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (d *postgresDao) DelTicketAssignee(ticketID string, userID int32) error {
+	sql := `DELETE FROM ticket_assignees WHERE ticket_id=$1 AND assignee_id=$2`
+	if _, err := d.db.Exec(sql, ticketID, userID); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (d *postgresDao) GetTicketAssignees(ticketID string) ([]int32, error) {
+	sql := `SELECT assignee_id FROM ticket_assignees WHERE ticket_id=$1`
+	var res []int32
+	err := d.db.Select(&res, sql, ticketID)
+	if err != nil {
+		return res, err
+	}
+	return res, nil
 }
