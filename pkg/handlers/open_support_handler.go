@@ -75,6 +75,26 @@ func (h *Handler) EditTicketDescription(c *fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusOK)
 }
 
+func (h *Handler) EditTicketDueDate(c *fiber.Ctx) error {
+	req := new(models.TicketUpdateRequest)
+	if err := c.BodyParser(req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+	user := h.GetUser(c)
+	ticketID := c.Params("ticket_id")
+	log.Debugf("getting ticketId:%s", ticketID)
+	err := h.s.EditTicketDueDate(user, ticketID, req.DueDate)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.SendStatus(fiber.StatusOK)
+}
+
 func (h *Handler) ReopenTicket(c *fiber.Ctx) error {
 	user := h.GetUser(c)
 	ticketID := c.Params("ticket_id")

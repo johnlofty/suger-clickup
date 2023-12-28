@@ -16,7 +16,8 @@ type ClickUpClient interface {
 	GetTask(taskID string) (models.ClickupTask, error)
 	ReopenTask(taskID string) error
 	UpdateTaskDescription(taskID, description string) error
-	// TODO add rest methods
+	UpdateTaskDueDate(taskID string, dueDate int64) error
+
 	GetList() (models.ClickupListResponse, error)
 	GetComments(taskID string)
 }
@@ -84,6 +85,22 @@ func (h *clickupClient) GetTask(taskID string) (models.ClickupTask, error) {
 func (h *clickupClient) UpdateTaskDescription(taskID, description string) error {
 	task := models.Task{
 		Description: description,
+	}
+	resp, err := h.client.R().SetHeader("Authorization", h.AuthenticateKey).
+		SetBody(task).
+		Put(fmt.Sprintf("https://api.clickup.com/api/v2/task/%s", taskID))
+	if err != nil {
+		return err
+	}
+	if resp.IsErrorState() {
+		return fmt.Errorf("request fail:%d ", resp.StatusCode)
+	}
+	return nil
+}
+
+func (h *clickupClient) UpdateTaskDueDate(taskID string, dueDate int64) error {
+	task := models.Task{
+		DueDate: dueDate,
 	}
 	resp, err := h.client.R().SetHeader("Authorization", h.AuthenticateKey).
 		SetBody(task).

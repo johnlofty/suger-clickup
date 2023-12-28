@@ -154,6 +154,18 @@ func (s *Service) EditTicketDescription(user *models.User, ticketID, description
 	return err
 }
 
+func (s *Service) EditTicketDueDate(user *models.User, ticketID string,
+	dueDate int64) error {
+	ticket, err := s.dao.GetTicket(ticketID)
+	if err != nil {
+		return err
+	}
+	if ticket.OrgID != user.OrgId {
+		return errors.New("invalid ticketID")
+	}
+	err = s.client.UpdateTaskDueDate(ticketID, dueDate)
+	return err
+}
 func (s *Service) ReopenTask(user *models.User, ticketID string) error {
 	ticket, err := s.dao.GetTicket(ticketID)
 	if err != nil {

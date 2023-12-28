@@ -104,6 +104,7 @@ type TicketUpdateRequest struct {
 	Description string `json:"description"`
 	Status      string `json:"status"`
 	Assignee    int32  `json:"assignee"`
+	DueDate     int64  `json:"due_date"`
 }
 
 type ClickupTask struct {
