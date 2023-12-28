@@ -10,27 +10,31 @@ import (
 )
 
 var schema = `
-CREATE TABLE IF NOT EXISTS accounts (
-	user_id serial PRIMARY KEY,
-	email VARCHAR (255) UNIQUE NOT NULL,
-	password VARCHAR (50) NOT NULL,
-	created_at TIMESTAMP NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS orgs(
+CREATE TABLE IF NOT EXISTS orgs (
 	org_id serial PRIMARY KEY,
 	org_name VARCHAR(255) UNIQUE NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS account_orgs (
+
+
+CREATE TABLE IF NOT EXISTS accounts (
+	user_id serial PRIMARY KEY,
+	email VARCHAR (255) UNIQUE NOT NULL,
+	password VARCHAR (50) NOT NULL,
+	created_at TIMESTAMP NOT NULL,
+	org_id INT NOT NULL,
+	FOREIGN KEY (org_id) REFERENCES orgs(org_id)
+);
+
+CREATE TABLE IF NOT EXISTS tickets (
+	ticket_id VARCHAR (36) PRIMARY KEY,
 	user_id INT NOT NULL,
 	org_id INT NOT NULL,
-	PRIMARY KEY (user_id, org_id),
-	FOREIGN KEY (org_id)
-		REFERENCES orgs (org_id),
-	FOREIGN KEY (user_id)
-		REFERENCES accounts (user_id)
+	created_at TIMESTAMP NOT NULL,
+	FOREIGN KEY (org_id) REFERENCES orgs(org_id),
+	FOREIGN KEY (user_id) REFERENCES accounts(user_id)
 )
+
 `
 
 var db *sqlx.DB
@@ -52,7 +56,7 @@ func setupDB() {
 	if err != nil {
 		panic(err)
 	}
-	db.Exec(schema)
+	db.MustExec(schema)
 }
 
 func GetDB() *sqlx.DB {

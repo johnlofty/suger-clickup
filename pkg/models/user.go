@@ -23,3 +23,12 @@ type LoginRequest struct {
 type LoginResponse struct {
 	Token string `json:"token,omitempty"`
 }
+
+type CreateOrgRequest struct {
+	OrgName string `json:"org_name,omitempty"`
+}
+
+type UpdateUserRequest struct {
+	Email string `json:"email,omitempty"`
+	OrgID int32  `json:"org_id,omitempty"`
+}

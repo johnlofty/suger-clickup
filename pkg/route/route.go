@@ -19,19 +19,28 @@ func BuildRoute(app *fiber.App, s *services.Service) {
 		return c.SendString("Hello, World 👋!")
 	})
 
+	h := handlers.NewHandler(s)
+
 	apiV1 := app.Group("/api/v1")
-	// need to register before using jwt
-	buildUserRoute(apiV1, s)
+	apiV1.Post("/register", h.Register)
+	apiV1.Post("/login", h.Login)
 
 	conf := settings.Get()
 	jwt := middlewares.NewAuthMiddleware(conf.JWT.Secret)
 	apiV1.Use(jwt)
 
-	apiV1.Get("/protected", handlers.Protected)
-}
+	// user
+	apiV1.Patch("/user", h.UpdateUser)
+	// org
+	apiV1.Post("/org", h.CreateOrg)
 
-func buildUserRoute(app fiber.Router, s *services.Service) {
-	h := handlers.NewHandler(s)
-	app.Post("/register", h.Register)
-	app.Post("/login", h.Login)
+	// ticket
+	apiV1.Get("/tickets", h.GetTickets)
+	apiV1.Post("/tickets", h.CreateTicket)
+	apiV1.Patch("/tickets/:ticket_id", h.EditTicket)
+
+	// comments
+	apiV1.Get("/ticket/:ticket_id/comments", h.GetComments)
+	apiV1.Post("/ticket/:ticket_id/comments", h.AddComment)
+
 }
