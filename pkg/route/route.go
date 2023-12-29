@@ -44,7 +44,7 @@ func BuildRoute(app *fiber.App, s *services.Service) {
 	apiV1.Delete("/tickets/:ticket_id/assignee/:assignee_id", h.DelTicketAssignee)
 
 	// comments
-	apiV1.Get("/ticket/:ticket_id/comments", h.GetComments)
-	apiV1.Post("/ticket/:ticket_id/comments", h.AddComment)
+	apiV1.Get("/tickets/:ticket_id/comments", h.GetComments)
+	apiV1.Post("/tickets/:ticket_id/comments", h.AddComment)
 
 }

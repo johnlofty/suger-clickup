@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/log"
 	jtoken "github.com/golang-jwt/jwt/v4"
 )
 
@@ -35,7 +36,7 @@ func (h *Handler) GetUser(c *fiber.Ctx) *models.User {
 	userInfo := &models.User{
 		ID:    int32(claims["ID"].(float64)),
 		OrgId: int32(claims["org_id"].(float64)),
-		// Email: claims["user"].(string),
+		Email: claims["email"].(string),
 	}
 	return userInfo
 }
@@ -78,6 +79,7 @@ func (h *Handler) Login(c *fiber.Ctx) error {
 		"org_id": user.OrgId,
 		"exp":    time.Now().Add(day * 1).Unix(),
 	}
+	log.Debugf("claims:%+v", claims)
 
 	// create token
 	token := jtoken.NewWithClaims(jtoken.SigningMethodHS256, claims)

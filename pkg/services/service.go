@@ -212,3 +212,62 @@ func (s *Service) DelTaskAssignee(user *models.User, ticketID string,
 	err = s.dao.DelTicketAssignee(ticketID, assignUserID)
 	return err
 }
+
+func (s *Service) GetTicketComments(user *models.User, ticketID, startID string) (
+	[]models.ClickupTaskComment, error) {
+	var result []models.ClickupTaskComment
+	ticket, err := s.dao.GetTicket(ticketID)
+	if err != nil {
+		return result, err
+	}
+	if ticket.OrgID != user.OrgId {
+		return result, errors.New("invalid ticketID")
+	}
+	comments, err := s.client.GetTaskComments(ticketID, startID)
+	for _, comment := range comments {
+		parseResult, ok := models.ExtractComment(comment.CommentText)
+		log.Debugf("raw content:%s parseResult:%+v ok:%v", comment.CommentText, parseResult, ok)
+		if ok {
+			comment.CommentText = parseResult.Content
+			comment.User = models.ClickupCommentUser{
+				ID:       int64(parseResult.UserID),
+				Username: parseResult.Username,
+				Email:    parseResult.Username,
+			}
+		} else {
+			comment.User = models.ClickupCommentUser{
+				ID:       0,
+				Username: "system",
+				Email:    "system@suger.io",
+			}
+		}
+		log.Debugf("formatted comment:%+v", comment)
+		result = append(result, comment)
+	}
+	if err != nil {
+		return result, err
+	}
+
+	return result, err
+}
+
+func (s *Service) CreateTicketComments(user *models.User, ticketID, commentText string) (
+	string, error) {
+	ticket, err := s.dao.GetTicket(ticketID)
+	if err != nil {
+		return "", err
+	}
+	if ticket.OrgID != user.OrgId {
+		return "", errors.New("invalid ticketID")
+	}
+	parseResult := &models.ClickupCommentParseResult{
+		Username: user.Email,
+		UserID:   user.ID,
+		Content:  commentText,
+	}
+	commentID, err := s.client.CreateTaskComment(ticketID, parseResult.Format())
+	if err != nil {
+		return "", err
+	}
+	return commentID, err
+}

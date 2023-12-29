@@ -157,9 +157,36 @@ func (h *Handler) DelTicketAssignee(c *fiber.Ctx) error {
 }
 
 func (h *Handler) GetComments(c *fiber.Ctx) error {
-	return nil
+	ticketID := c.Params("ticket_id")
+	startID := c.Query("start_id", "")
+	user := h.GetUser(c)
+	comments, err := h.s.GetTicketComments(user, ticketID, startID)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+	return c.JSON(fiber.Map{
+		"comments": comments,
+	})
 }
 
 func (h *Handler) AddComment(c *fiber.Ctx) error {
-	return nil
+	ticketID := c.Params("ticket_id")
+	req := new(models.ClickupCreateTaskCommentRequest)
+	if err := c.BodyParser(req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	user := h.GetUser(c)
+	commentID, err := h.s.CreateTicketComments(user, ticketID, req.CommentText)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(fiber.Map{
+		"id": commentID,
+	})
 }

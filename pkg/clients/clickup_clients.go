@@ -19,7 +19,8 @@ type ClickUpClient interface {
 	UpdateTaskDueDate(taskID string, dueDate int64) error
 
 	GetList() (models.ClickupListResponse, error)
-	GetComments(taskID string)
+	GetTaskComments(taskID, startID string) ([]models.ClickupTaskComment, error)
+	CreateTaskComment(taskID, commentText string) (string, error)
 }
 
 type clickupClient struct {
@@ -163,13 +164,39 @@ func (h *clickupClient) GetList() (models.ClickupListResponse, error) {
 	return task, nil
 }
 
-func (h *clickupClient) GetComments(taskID string) {
-	var task models.ClickupListResponse
+func (h *clickupClient) GetTaskComments(taskID, startID string) (
+	[]models.ClickupTaskComment, error) {
+	var task models.ClickupTaskCommentsResponse
+	params := map[string]string{
+		"task_id":  taskID,
+		"start_id": startID,
+	}
 	_, err := h.client.R().SetHeader("Authorization", h.AuthenticateKey).
 		SetSuccessResult(&task).
-		Get(fmt.Sprintf("https://api.clickup.com/api/v2/task/%s/comment", taskID))
+		SetPathParams(params).
+		Get("https://api.clickup.com/api/v2/task/{task_id}/comment?start_id={start_id}")
 	if err != nil {
-		return
+		return nil, err
 	}
-	return
+	return task.Comments, nil
+}
+
+func (h *clickupClient) CreateTaskComment(taskID, commentText string) (
+	string, error) {
+	var result models.ClickupCreateTaskCommentResponse
+	params := map[string]string{
+		"task_id": taskID,
+	}
+	req := models.ClickupCreateTaskCommentRequest{
+		CommentText: commentText,
+	}
+	_, err := h.client.R().SetHeader("Authorization", h.AuthenticateKey).
+		SetSuccessResult(&result).
+		SetPathParams(params).
+		SetBody(req).
+		Post("https://api.clickup.com/api/v2/task/{task_id}/comment")
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%d", result.ID), nil
 }
