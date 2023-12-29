@@ -15,8 +15,6 @@ CREATE TABLE IF NOT EXISTS orgs (
 	org_name VARCHAR(255) UNIQUE NOT NULL
 );
 
-
-
 CREATE TABLE IF NOT EXISTS accounts (
 	user_id serial PRIMARY KEY,
 	email VARCHAR (255) UNIQUE NOT NULL,
@@ -39,6 +37,13 @@ CREATE TABLE IF NOT EXISTS ticket_assignees (
 	ticket_id VARCHAR (36) REFERENCES tickets(ticket_id),
 	assignee_id INT REFERENCES accounts(user_id),
 	PRIMARY KEY (ticket_id, assignee_id)
+);
+
+CREATE TABLE IF NOT EXISTS notifications (
+	org_id INT REFERENCES orgs(org_id),
+	status_change BOOLEAN,
+	content_change BOOLEAN,
+	PRIMARY KEY (org_id)
 );
 
 `

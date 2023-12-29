@@ -28,6 +28,12 @@ type CreateOrgRequest struct {
 	OrgName string `json:"org_name,omitempty"`
 }
 
+type OrgNotiRequest struct {
+	OrgID         int32 `json:"-" db:"org_id"`
+	StatusChange  bool  `json:"status_change" db:"status_change"`
+	ContentChange bool  `json:"content_change" db:"content_change"`
+}
+
 type UpdateUserRequest struct {
 	Email string `json:"email,omitempty"`
 	OrgID int32  `json:"org_id,omitempty"`

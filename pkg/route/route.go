@@ -33,6 +33,8 @@ func BuildRoute(app *fiber.App, s *services.Service) {
 	apiV1.Patch("/user", h.UpdateUser)
 	// org
 	apiV1.Post("/org", h.CreateOrg)
+	apiV1.Get("/org/:org_id/notification", h.GetOrgNotification)
+	apiV1.Patch("/org/:org_id/notification", h.ModOrgNotification)
 
 	// ticket
 	apiV1.Get("/tickets", h.GetTickets)

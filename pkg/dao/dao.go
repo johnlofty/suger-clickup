@@ -19,6 +19,8 @@ type DBDao interface {
 	// org
 	CreateOrg(orgName string) error
 	GetOrg(orgId int32) (*models.Org, error)
+	GetOrgNotification(orgId int32) (*models.OrgNotiRequest, error)
+	ModOrgNotification(orgID int32, req *models.OrgNotiRequest) error
 
 	// ticket
 	CreateTicket(ticket *models.Ticket) error
@@ -88,6 +90,32 @@ func (d *postgresDao) CreateOrg(orgName string) error {
 		return errors.New("fail to insert")
 	}
 	return nil
+}
+
+func (d *postgresDao) ModOrgNotification(orgID int32,
+	req *models.OrgNotiRequest) error {
+	sql := `INSERT INTO notifications (org_id, status_change, content_change)
+	 VALUES ($1, $2, $3)
+	 ON CONFLICT (org_id) DO UPDATE
+		SET status_change=EXCLUDED.status_change,
+		content_change=EXCLUDED.content_change;	
+	 `
+	res, err := d.db.Exec(sql, orgID, req.StatusChange, req.ContentChange)
+	if err != nil {
+		log.Debugf("sql:%s err:%v", sql, err)
+		return err
+	}
+	if count, err := res.RowsAffected(); count < 1 || err != nil {
+		return errors.New("fail to insert")
+	}
+	return nil
+}
+
+func (d *postgresDao) GetOrgNotification(orgId int32) (*models.OrgNotiRequest, error) {
+	sql := `SELECT * FROM notifications WHERE org_id=$1`
+	org := models.OrgNotiRequest{}
+	err := d.db.Get(&org, sql, orgId)
+	return &org, err
 }
 
 func (d *postgresDao) GetOrg(orgId int32) (*models.Org, error) {

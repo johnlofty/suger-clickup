@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"database/sql"
+	"strconv"
 	"suger-clickup/pkg/models"
 	"suger-clickup/pkg/services"
 	"suger-clickup/pkg/settings"
@@ -133,10 +135,56 @@ func (h *Handler) CreateOrg(c *fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusOK)
 }
 
-func Protected(c *fiber.Ctx) error {
-	// Get the user from the context and return it
-	user := c.Locals("user").(*jtoken.Token)
-	claims := user.Claims.(jtoken.MapClaims)
-	email := claims["email"].(string)
-	return c.SendString("Welcome " + email)
+func (h *Handler) ModOrgNotification(c *fiber.Ctx) error {
+	orgIDStr := c.Params("org_id")
+	orgID, err := strconv.ParseInt(orgIDStr, 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+	req := new(models.OrgNotiRequest)
+	if err := c.BodyParser(req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	err = h.s.ModOrgNotification(int32(orgID), req)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.SendStatus(fiber.StatusOK)
+}
+
+func (h *Handler) GetOrgNotification(c *fiber.Ctx) error {
+	orgIDStr := c.Params("org_id")
+	orgID, err := strconv.ParseInt(orgIDStr, 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+	notification, err := h.s.GetOrgNotification(int32(orgID))
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return c.JSON(fiber.Map{
+				"notification": models.OrgNotiRequest{
+					OrgID:         int32(orgID),
+					ContentChange: false,
+					StatusChange:  false,
+				},
+			})
+		} else {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": err.Error(),
+			})
+		}
+	}
+	return c.JSON(fiber.Map{
+		"notification": notification,
+	})
 }

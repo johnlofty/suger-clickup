@@ -51,6 +51,14 @@ func (s *Service) CreateOrg(orgName string) error {
 	return s.dao.CreateOrg(orgName)
 }
 
+func (s *Service) ModOrgNotification(orgID int32,
+	req *models.OrgNotiRequest) error {
+	return s.dao.ModOrgNotification(orgID, req)
+}
+
+func (s *Service) GetOrgNotification(orgID int32) (*models.OrgNotiRequest, error) {
+	return s.dao.GetOrgNotification(orgID)
+}
 func (s *Service) CreateTask(userID int32, r *models.CreateTaskRequest) (string, error) {
 	if err := r.Validate(); err != nil {
 		return "", err
@@ -270,4 +278,9 @@ func (s *Service) CreateTicketComments(user *models.User, ticketID, commentText 
 		return "", err
 	}
 	return commentID, err
+}
+
+func (s *Service) SendNotification(user *models.User) {
+	// TODO Send notification according to requirements
+
 }
