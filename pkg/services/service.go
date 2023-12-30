@@ -12,6 +12,8 @@ import (
 	"github.com/gofiber/fiber/v2/log"
 )
 
+const TicketCommentPageSize = 25
+
 type Service struct {
 	client clients.ClickUpClient
 	dao    dao.DBDao
@@ -93,12 +95,33 @@ func (s *Service) CreateTask(userID int32, r *models.CreateTaskRequest) (string,
 		UserID:    userID,
 		OrgID:     org.OrgId,
 		CreatedAt: time.Now(),
+		Watcher:   r.Watcher,
 	}
 	err = s.dao.CreateTicket(ticket)
 	if err != nil {
 		return "", fmt.Errorf("create ticket fail:%w", err)
 	}
 	return taskID, nil
+}
+
+func (s *Service) FormatTask(clickTask models.ClickupTask, ticket models.Ticket) models.Task {
+	task := models.Task{
+		ID:          clickTask.ID,
+		Name:        clickTask.Name,
+		Description: clickTask.Description,
+		Status:      clickTask.Status.Status,
+		StartDate:   ticket.CreatedAt.Unix(),
+		Watcher:     ticket.Watcher,
+	}
+	dueDate, err := strconv.ParseInt(clickTask.DueDate, 10, 64)
+	if err == nil && dueDate != 0 {
+		task.DueDate = dueDate / 1000
+	}
+	priority, err := strconv.ParseInt(clickTask.Priority.ID, 10, 64)
+	if err == nil {
+		task.Priority = int32(priority)
+	}
+	return task
 }
 
 func (s *Service) GetTickets(userID, page, pageSize int32) ([]models.Task, error) {
@@ -122,35 +145,37 @@ func (s *Service) GetTickets(userID, page, pageSize int32) ([]models.Task, error
 			}
 			continue
 		}
-		task := models.Task{
-			ID:          clickTask.ID,
-			Name:        clickTask.Name,
-			Description: clickTask.Description,
-			Status:      clickTask.Status.Status,
-			StartDate:   ticket.CreatedAt.Unix(),
-		}
-		dueDate, err := strconv.ParseInt(clickTask.DueDate, 10, 64)
-		if err == nil && dueDate != 0 {
-			task.DueDate = dueDate / 1000
-		}
-		priority, err := strconv.ParseInt(clickTask.Priority.ID, 10, 64)
-		if err == nil {
-			task.Priority = int32(priority)
-		}
-		assignees, err := s.dao.GetTicketAssignees(ticket.TicketID)
-		if err == nil {
-			task.Assignees = assignees
-		}
+		task := s.FormatTask(clickTask, ticket)
 		data = append(data, task)
 	}
 	return data, nil
+}
+
+func (s *Service) GetTicket(ticketID string) (models.Task, error) {
+	var task models.Task
+	ticket, err := s.dao.GetTicket(ticketID)
+	if err != nil {
+		return task, err
+	}
+	clickTask, err := s.client.GetTask(ticket.TicketID)
+	if err != nil {
+		return task, err
+	}
+	task = s.FormatTask(clickTask, ticket)
+	comments, err := s.getAllTicketComments(ticketID)
+	if err != nil {
+		return task, err
+	}
+	task.Comments = comments
+	return task, nil
 }
 
 func (s *Service) GetTicketsCount(orgID int32) (int32, error) {
 	return s.dao.GetTicketsCount(orgID)
 }
 
-func (s *Service) EditTicketDescription(user *models.User, ticketID, description string) error {
+func (s *Service) EditTicket(user *models.User, ticketID string,
+	req models.TicketUpdateRequest) error {
 	ticket, err := s.dao.GetTicket(ticketID)
 	if err != nil {
 		return err
@@ -158,22 +183,16 @@ func (s *Service) EditTicketDescription(user *models.User, ticketID, description
 	if ticket.OrgID != user.OrgId {
 		return errors.New("invalid ticketID")
 	}
-	err = s.client.UpdateTaskDescription(ticketID, description)
+	err = s.client.UpdateTask(ticketID, req)
+	if len(req.Watcher) > 0 {
+		err = s.dao.SetTicketWatcher(ticketID, req.Watcher)
+		if err != nil {
+			return err
+		}
+	}
 	return err
 }
 
-func (s *Service) EditTicketDueDate(user *models.User, ticketID string,
-	dueDate int64) error {
-	ticket, err := s.dao.GetTicket(ticketID)
-	if err != nil {
-		return err
-	}
-	if ticket.OrgID != user.OrgId {
-		return errors.New("invalid ticketID")
-	}
-	err = s.client.UpdateTaskDueDate(ticketID, dueDate)
-	return err
-}
 func (s *Service) ReopenTask(user *models.User, ticketID string) error {
 	ticket, err := s.dao.GetTicket(ticketID)
 	if err != nil {
@@ -182,55 +201,15 @@ func (s *Service) ReopenTask(user *models.User, ticketID string) error {
 	if ticket.OrgID != user.OrgId {
 		return errors.New("invalid ticketID")
 	}
+	// TODO check if task can be open
 	err = s.client.ReopenTask(ticketID)
 	return err
 }
 
-func (s *Service) SetTaskAssignee(user *models.User, ticketID string,
-	assignUserID int32) error {
-	ticket, err := s.dao.GetTicket(ticketID)
-	if err != nil {
-		return err
-	}
-	if ticket.OrgID != user.OrgId {
-		return errors.New("invalid ticketID")
-	}
-	assignUser, err := s.dao.GetUserByID(assignUserID)
-	if err != nil || assignUser.OrgId != user.OrgId {
-		return errors.New("invalid user")
-	}
-	err = s.dao.AddTicketAssignee(ticketID, assignUserID)
-	return err
-}
-
-func (s *Service) DelTaskAssignee(user *models.User, ticketID string,
-	assignUserID int32) error {
-	ticket, err := s.dao.GetTicket(ticketID)
-	if err != nil {
-		return err
-	}
-	if ticket.OrgID != user.OrgId {
-		return errors.New("invalid ticketID")
-	}
-	assignUser, err := s.dao.GetUserByID(assignUserID)
-	if err != nil || assignUser.OrgId != user.OrgId {
-		return errors.New("invalid user")
-	}
-
-	err = s.dao.DelTicketAssignee(ticketID, assignUserID)
-	return err
-}
-
-func (s *Service) GetTicketComments(user *models.User, ticketID, startID string) (
+func (s *Service) getTicketComments(ticketID, startID string) (
 	[]models.ClickupTaskComment, error) {
+
 	var result []models.ClickupTaskComment
-	ticket, err := s.dao.GetTicket(ticketID)
-	if err != nil {
-		return result, err
-	}
-	if ticket.OrgID != user.OrgId {
-		return result, errors.New("invalid ticketID")
-	}
 	comments, err := s.client.GetTaskComments(ticketID, startID)
 	for _, comment := range comments {
 		parseResult, ok := models.ExtractComment(comment.CommentText)
@@ -257,6 +236,42 @@ func (s *Service) GetTicketComments(user *models.User, ticketID, startID string)
 	}
 
 	return result, err
+}
+
+func (s *Service) getAllTicketComments(ticketID string) (
+	[]models.ClickupTaskComment, error) {
+	var result []models.ClickupTaskComment
+
+	startID := ""
+	for {
+		comments, err := s.getTicketComments(ticketID, startID)
+		if err != nil {
+			return result, err
+		}
+		if len(comments) < 1 {
+			break
+		}
+		result = append(result, comments...)
+		if len(comments) < TicketCommentPageSize {
+			break
+		} else {
+			startID = comments[len(comments)-1].ID
+		}
+	}
+	return result, nil
+}
+
+func (s *Service) GetTicketComments(user *models.User, ticketID, startID string) (
+	[]models.ClickupTaskComment, error) {
+	var result []models.ClickupTaskComment
+	ticket, err := s.dao.GetTicket(ticketID)
+	if err != nil {
+		return result, err
+	}
+	if ticket.OrgID != user.OrgId {
+		return result, errors.New("invalid ticketID")
+	}
+	return s.getTicketComments(ticketID, startID)
 }
 
 func (s *Service) CreateTicketComments(user *models.User, ticketID, commentText string) (

@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"strconv"
 	"suger-clickup/pkg/models"
 
 	"github.com/gofiber/fiber/v2"
@@ -27,7 +26,7 @@ func (h *Handler) CreateTicket(c *fiber.Ctx) error {
 	})
 }
 
-func (h *Handler) GetTickets(c *fiber.Ctx) error {
+func (h *Handler) ListTickets(c *fiber.Ctx) error {
 	user := h.GetUser(c)
 	page := c.QueryInt("page", 1)
 	pageSize := c.QueryInt("page_size", 10)
@@ -55,27 +54,21 @@ func (h *Handler) GetTickets(c *fiber.Ctx) error {
 	})
 }
 
-func (h *Handler) EditTicketDescription(c *fiber.Ctx) error {
-	req := new(models.TicketUpdateRequest)
-	if err := c.BodyParser(req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": err.Error(),
-		})
-	}
-	user := h.GetUser(c)
+func (h *Handler) GetTicket(c *fiber.Ctx) error {
 	ticketID := c.Params("ticket_id")
-	log.Debugf("getting ticketId:%s", ticketID)
-	err := h.s.EditTicketDescription(user, ticketID, req.Description)
+	ticket, err := h.s.GetTicket(ticketID)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),
 		})
-	}
 
-	return c.SendStatus(fiber.StatusOK)
+	}
+	return c.JSON(fiber.Map{
+		"ticket": ticket,
+	})
 }
 
-func (h *Handler) EditTicketDueDate(c *fiber.Ctx) error {
+func (h *Handler) EditTicket(c *fiber.Ctx) error {
 	req := new(models.TicketUpdateRequest)
 	if err := c.BodyParser(req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -85,7 +78,7 @@ func (h *Handler) EditTicketDueDate(c *fiber.Ctx) error {
 	user := h.GetUser(c)
 	ticketID := c.Params("ticket_id")
 	log.Debugf("getting ticketId:%s", ticketID)
-	err := h.s.EditTicketDueDate(user, ticketID, req.DueDate)
+	err := h.s.EditTicket(user, ticketID, *req)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),
@@ -100,53 +93,6 @@ func (h *Handler) ReopenTicket(c *fiber.Ctx) error {
 	ticketID := c.Params("ticket_id")
 	log.Debugf("getting ticketId:%s", ticketID)
 	err := h.s.ReopenTask(user, ticketID)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": err.Error(),
-		})
-	}
-
-	return c.SendStatus(fiber.StatusOK)
-}
-
-func (h *Handler) SetTicketAssignee(c *fiber.Ctx) error {
-	req := new(models.TicketUpdateRequest)
-	if err := c.BodyParser(req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": err.Error(),
-		})
-	}
-	user := h.GetUser(c)
-	ticketID := c.Params("ticket_id")
-	log.Debugf("getting ticketId:%s", ticketID)
-	err := h.s.SetTaskAssignee(user, ticketID, req.Assignee)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": err.Error(),
-		})
-	}
-
-	return c.SendStatus(fiber.StatusOK)
-}
-
-func (h *Handler) DelTicketAssignee(c *fiber.Ctx) error {
-	req := new(models.TicketUpdateRequest)
-	if err := c.BodyParser(req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": err.Error(),
-		})
-	}
-	user := h.GetUser(c)
-	ticketID := c.Params("ticket_id")
-	assigneeID := c.Params("assignee_id")
-	assigneeUserID, err := strconv.ParseInt(assigneeID, 10, 32)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": err.Error(),
-		})
-	}
-	log.Debugf("getting ticketId:%s assignee_id:%s", ticketID, assigneeID)
-	err = h.s.DelTaskAssignee(user, ticketID, int32(assigneeUserID))
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),

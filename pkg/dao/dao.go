@@ -28,9 +28,7 @@ type DBDao interface {
 	GetTicketsCount(orgID int32) (int32, error)
 	GetTicket(ticketID string) (models.Ticket, error)
 	DeleteTicket(ticketID string) error
-	AddTicketAssignee(ticketID string, userID int32) error
-	DelTicketAssignee(ticketID string, userID int32) error
-	GetTicketAssignees(ticketID string) ([]int32, error)
+	SetTicketWatcher(ticketID string, watcher []int32) error
 }
 type postgresDao struct {
 	db *sqlx.DB
@@ -148,11 +146,11 @@ func (d *postgresDao) GetTicketsByOrgID(orgID, page, pageSize int32) ([]models.T
 }
 
 func (d *postgresDao) CreateTicket(ticket *models.Ticket) error {
-	sql := `INSERT INTO tickets (ticket_id, user_id, org_id, created_at)
-	 VALUES ($1, $2, $3, $4)`
+	sql := `INSERT INTO tickets (ticket_id, user_id, org_id, created_at, watcher)
+	 VALUES ($1, $2, $3, $4, $5)`
 
 	res := d.db.MustExec(sql, ticket.TicketID, ticket.UserID, ticket.OrgID,
-		time.Now())
+		time.Now(), ticket.Watcher)
 	if count, err := res.RowsAffected(); err == nil && count > 0 {
 		return nil
 	}
@@ -168,36 +166,18 @@ func (d *postgresDao) GetTicket(ticketID string) (models.Ticket, error) {
 	return ticket, nil
 }
 
+func (d *postgresDao) SetTicketWatcher(ticketID string, watcher []int32) error {
+	sql := `UPDATE tickets SET watcher=$2 WHERE ticket_id=$1`
+	if _, err := d.db.Exec(sql, ticketID, watcher); err != nil {
+		log.Debugf("ticket:%s sql:%s array:%v", ticketID, sql, watcher)
+		return err
+	}
+	return nil
+}
 func (d *postgresDao) DeleteTicket(ticketID string) error {
 	sql := `DELETE FROM tickets WHERE ticket_id=$1`
 	if _, err := d.db.Exec(sql, ticketID); err != nil {
 		return err
 	}
 	return nil
-}
-
-func (d *postgresDao) AddTicketAssignee(ticketID string, userID int32) error {
-	sql := `INSERT INTO ticket_assignees (ticket_id, assignee_id) VALUES ($1, $2)`
-	if _, err := d.db.Exec(sql, ticketID, userID); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (d *postgresDao) DelTicketAssignee(ticketID string, userID int32) error {
-	sql := `DELETE FROM ticket_assignees WHERE ticket_id=$1 AND assignee_id=$2`
-	if _, err := d.db.Exec(sql, ticketID, userID); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (d *postgresDao) GetTicketAssignees(ticketID string) ([]int32, error) {
-	sql := `SELECT assignee_id FROM ticket_assignees WHERE ticket_id=$1`
-	var res []int32
-	err := d.db.Select(&res, sql, ticketID)
-	if err != nil {
-		return res, err
-	}
-	return res, nil
 }

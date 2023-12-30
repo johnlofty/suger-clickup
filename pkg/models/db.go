@@ -29,15 +29,11 @@ CREATE TABLE IF NOT EXISTS tickets (
 	user_id INT NOT NULL,
 	org_id INT NOT NULL,
 	created_at TIMESTAMP NOT NULL,
+	watcher integer[],
 	FOREIGN KEY (org_id) REFERENCES orgs(org_id),
 	FOREIGN KEY (user_id) REFERENCES accounts(user_id)
 );
 
-CREATE TABLE IF NOT EXISTS ticket_assignees (
-	ticket_id VARCHAR (36) REFERENCES tickets(ticket_id),
-	assignee_id INT REFERENCES accounts(user_id),
-	PRIMARY KEY (ticket_id, assignee_id)
-);
 
 CREATE TABLE IF NOT EXISTS notifications (
 	org_id INT REFERENCES orgs(org_id),

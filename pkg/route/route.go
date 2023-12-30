@@ -33,20 +33,17 @@ func BuildRoute(app *fiber.App, s *services.Service) {
 	apiV1.Patch("/user", h.UpdateUser)
 	// org
 	apiV1.Post("/org", h.CreateOrg)
+	// notification
 	apiV1.Get("/org/:org_id/notification", h.GetOrgNotification)
 	apiV1.Patch("/org/:org_id/notification", h.ModOrgNotification)
 
 	// ticket
-	apiV1.Get("/tickets", h.GetTickets)
+	apiV1.Get("/tickets", h.ListTickets)
+	apiV1.Get("/tickets/:ticket_id", h.GetTicket)
 	apiV1.Post("/tickets", h.CreateTicket)
-	apiV1.Patch("/tickets/:ticket_id/description", h.EditTicketDescription)
-	apiV1.Patch("/tickets/:ticket_id/duedate", h.EditTicketDueDate)
-	apiV1.Patch("/tickets/:ticket_id/reopen", h.ReopenTicket)
-	apiV1.Patch("/tickets/:ticket_id/assignee", h.SetTicketAssignee)
-	apiV1.Delete("/tickets/:ticket_id/assignee/:assignee_id", h.DelTicketAssignee)
-
+	apiV1.Patch("/tickets/:ticket_id", h.EditTicket)
 	// comments
-	apiV1.Get("/tickets/:ticket_id/comments", h.GetComments)
 	apiV1.Post("/tickets/:ticket_id/comments", h.AddComment)
-
+	// TODO update status, validate status
+	apiV1.Patch("/tickets/:ticket_id/status", h.ReopenTicket)
 }

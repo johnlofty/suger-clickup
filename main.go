@@ -18,7 +18,7 @@ func init() {
 
 }
 
-func main() {
+func Setup() *fiber.App {
 	app := fiber.New()
 	conf := settings.Get()
 
@@ -29,5 +29,10 @@ func main() {
 			conf.ClickupConfig.ListId),
 	)
 	route.BuildRoute(app, s)
+	return app
+}
+
+func main() {
+	app := Setup()
 	app.Listen("localhost:3000")
 }

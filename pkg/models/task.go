@@ -3,6 +3,8 @@ package models
 import (
 	"errors"
 	"time"
+
+	"github.com/lib/pq"
 )
 
 type Status string
@@ -27,19 +29,20 @@ const (
 )
 
 type Task struct {
-	ID            string             `json:"id,omitempty"`
-	Name          string             `json:"name,omitempty"`
-	Description   string             `json:"description,omitempty"`
-	Tags          []string           `json:"tags,omitempty"`
-	Status        string             `json:"status,omitempty"`
-	Priority      int32              `json:"priority,omitempty"`
-	DueDate       int64              `json:"due_date,omitempty"`
-	DueDateTime   bool               `json:"due_date_time,omitempty"`
-	TimeEstimate  int32              `json:"time_estimate,omitempty"`
-	StartDate     int64              `json:"start_date,omitempty"`
-	StartDateTime bool               `json:"start_date_time,omitempty"`
-	CustomFields  []TaskCustomFields `json:"custom_fields,omitempty"`
-	Assignees     []int32            `json:"assignees,omitempty"`
+	ID            string               `json:"id,omitempty"`
+	Name          string               `json:"name,omitempty"`
+	Description   string               `json:"description,omitempty"`
+	Tags          []string             `json:"tags,omitempty"`
+	Status        string               `json:"status,omitempty"`
+	Priority      int32                `json:"priority,omitempty"`
+	DueDate       int64                `json:"due_date,omitempty"`
+	DueDateTime   bool                 `json:"due_date_time,omitempty"`
+	TimeEstimate  int32                `json:"time_estimate,omitempty"`
+	StartDate     int64                `json:"start_date,omitempty"`
+	StartDateTime bool                 `json:"start_date_time,omitempty"`
+	Watcher       []int32              `json:"watcher"`
+	CustomFields  []TaskCustomFields   `json:"custom_fields,omitempty"`
+	Comments      []ClickupTaskComment `json:"comments,omitempty"`
 }
 
 func (t *Task) AddOrgId(orgID string) *Task {
@@ -70,11 +73,12 @@ type TaskCustomFields struct {
 }
 
 type CreateTaskRequest struct {
-	Name        string `json:"name,omitempty"`
-	Description string `json:"description,omitempty"`
-	DueTime     int64  `json:"due_time,omitempty"`
-	StartTime   int64  `json:"start_time"`
-	Priority    int32  `json:"priority,omitempty"`
+	Name        string  `json:"name,omitempty"`
+	Description string  `json:"description,omitempty"`
+	DueTime     int64   `json:"due_time,omitempty"`
+	StartTime   int64   `json:"start_time"`
+	Priority    int32   `json:"priority,omitempty"`
+	Watcher     []int32 `json:"watcher"`
 }
 
 func (r CreateTaskRequest) Validate() error {
@@ -94,17 +98,19 @@ func (r CreateTaskRequest) Validate() error {
 }
 
 type Ticket struct {
-	TicketID  string    `db:"ticket_id" json:"ticket_id,omitempty"`
-	OrgID     int32     `db:"org_id" json:"org_id,omitempty"`
-	UserID    int32     `db:"user_id" json:"user_id,omitempty"`
-	CreatedAt time.Time `db:"created_at" json:"created_at,omitempty"`
+	TicketID  string        `db:"ticket_id" json:"ticket_id,omitempty"`
+	OrgID     int32         `db:"org_id" json:"org_id,omitempty"`
+	UserID    int32         `db:"user_id" json:"user_id,omitempty"`
+	Watcher   pq.Int32Array `db:"watcher" json:"watcher,omitempty"`
+	CreatedAt time.Time     `db:"created_at" json:"created_at,omitempty"`
 }
 
 type TicketUpdateRequest struct {
-	Description string `json:"description"`
-	Status      string `json:"status"`
-	Assignee    int32  `json:"assignee"`
-	DueDate     int64  `json:"due_date"`
+	Description string  `json:"description"`
+	Status      string  `json:"status"`
+	Watcher     []int32 `json:"watcher"`
+	DueDate     int64   `json:"due_date"`
+	Priority    int32   `json:"priority,omitempty"`
 }
 
 type ClickupTask struct {

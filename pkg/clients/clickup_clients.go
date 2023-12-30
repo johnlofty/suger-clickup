@@ -15,8 +15,7 @@ type ClickUpClient interface {
 	CreateTask(task *models.Task) (string, error)
 	GetTask(taskID string) (models.ClickupTask, error)
 	ReopenTask(taskID string) error
-	UpdateTaskDescription(taskID, description string) error
-	UpdateTaskDueDate(taskID string, dueDate int64) error
+	UpdateTask(taskID string, req models.TicketUpdateRequest) error
 
 	GetList() (models.ClickupListResponse, error)
 	GetTaskComments(taskID, startID string) ([]models.ClickupTaskComment, error)
@@ -81,6 +80,25 @@ func (h *clickupClient) GetTask(taskID string) (models.ClickupTask, error) {
 	}
 
 	return task, nil
+}
+
+func (h *clickupClient) UpdateTask(taskID string,
+	req models.TicketUpdateRequest) error {
+	task := models.Task{
+		Description: req.Description,
+		DueDate:     req.DueDate,
+		Priority:    req.Priority,
+	}
+	resp, err := h.client.R().SetHeader("Authorization", h.AuthenticateKey).
+		SetBody(task).
+		Put(fmt.Sprintf("https://api.clickup.com/api/v2/task/%s", taskID))
+	if err != nil {
+		return err
+	}
+	if resp.IsErrorState() {
+		return fmt.Errorf("request fail:%d ", resp.StatusCode)
+	}
+	return nil
 }
 
 func (h *clickupClient) UpdateTaskDescription(taskID, description string) error {

@@ -6,7 +6,8 @@ import (
 	"strconv"
 )
 
-const TextFormat = "(username)[user_id] says: {content}"
+// TODO first line as meta info
+const TextFormat = "(username)[user_id]\n{content}"
 
 type ClickupTaskCommentsResponse struct {
 	Comments []ClickupTaskComment
