@@ -1,25 +1,40 @@
 package models
 
+import "time"
+
 type User struct {
-	UserId    int32
-	Username  string
-	Password  string
-	Email     string
-	CreatedAt int64
-	OrgId     int32
+	ID        int32     `json:"id,omitempty" db:"user_id"`
+	Password  string    `json:"password,omitempty" db:"password"`
+	Email     string    `json:"email,omitempty" db:"email"`
+	CreatedAt time.Time `json:"created_at,omitempty" db:"created_at"`
+	OrgId     int32     `json:"org_id,omitempty" db:"org_id"`
 }
 
-func CreateUser(u *User) error {
-	_, err := db.Exec("INSERT INTO users(username, password) VALUES ($1, $2)")
-	return err
+type RegisterRequest struct {
+	Email    string `json:"email,omitempty"`
+	Password string `json:"password,omitempty"`
 }
 
-func GetUser(email string) (User, error) {
-	// user := User{}
+type LoginRequest struct {
+	Email    string `json:"email,omitempty"`
+	Password string `json:"password,omitempty"`
+}
 
-	// query := `SELECT * FROM users WHERE email=$1`
+type LoginResponse struct {
+	Token string `json:"token,omitempty"`
+}
 
-	// err :=
-	// return
-	return User{}, nil
+type CreateOrgRequest struct {
+	OrgName string `json:"org_name,omitempty"`
+}
+
+type OrgNotiRequest struct {
+	OrgID         int32 `json:"-" db:"org_id"`
+	StatusChange  bool  `json:"status_change" db:"status_change"`
+	ContentChange bool  `json:"content_change" db:"content_change"`
+}
+
+type UpdateUserRequest struct {
+	Email string `json:"email,omitempty"`
+	OrgID int32  `json:"org_id,omitempty"`
 }

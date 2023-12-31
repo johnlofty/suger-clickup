@@ -1,2 +1,4 @@
 tmp/
 configs/
+pkg/clients/clickup_clients_test.go
+pkg/dao/dao_test.go

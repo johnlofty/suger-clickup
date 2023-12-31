@@ -10,28 +10,37 @@ import (
 )
 
 var schema = `
-CREATE TABLE IF NOT EXISTS accounts (
-	user_id serial PRIMARY KEY,
-	username VARCHAR (50) UNIQUE NOT NULL,
-	password VARCHAR (50) NOT NULL,
-	email VARCHAR (255) UNIQUE NOT NULL,
-	created_at TIMESTAMP NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS orgs(
+CREATE TABLE IF NOT EXISTS orgs (
 	org_id serial PRIMARY KEY,
 	org_name VARCHAR(255) UNIQUE NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS account_orgs (
+CREATE TABLE IF NOT EXISTS accounts (
+	user_id serial PRIMARY KEY,
+	email VARCHAR (255) UNIQUE NOT NULL,
+	password VARCHAR (50) NOT NULL,
+	created_at TIMESTAMP NOT NULL,
+	org_id INT NOT NULL,
+	FOREIGN KEY (org_id) REFERENCES orgs(org_id)
+);
+
+CREATE TABLE IF NOT EXISTS tickets (
+	ticket_id VARCHAR (36) PRIMARY KEY,
 	user_id INT NOT NULL,
 	org_id INT NOT NULL,
-	PRIMARY KEY (user_id, org_id),
-	FOREIGN KEY (org_id)
-		REFERENCES orgs (org_id),
-	FOREIGN KEY (user_id)
-		REFERENCES accounts (user_id)
-)
+	created_at TIMESTAMP NOT NULL,
+	watcher integer[],
+	FOREIGN KEY (org_id) REFERENCES orgs(org_id),
+	FOREIGN KEY (user_id) REFERENCES accounts(user_id)
+);
+
+
+CREATE TABLE IF NOT EXISTS notifications (
+	org_id INT REFERENCES orgs(org_id),
+	status_change BOOLEAN,
+	content_change BOOLEAN,
+	PRIMARY KEY (org_id)
+);
 
 `
 
@@ -54,4 +63,9 @@ func setupDB() {
 	if err != nil {
 		panic(err)
 	}
+	db.MustExec(schema)
+}
+
+func GetDB() *sqlx.DB {
+	return db
 }

@@ -3,12 +3,14 @@ package settings
 import (
 	"fmt"
 
+	"github.com/gofiber/fiber/v2/log"
 	"github.com/spf13/viper"
 )
 
 type config struct {
 	ClickupConfig clickupConfig `mapstructure:"clickup"`
 	DBConfig      dbConfig      `mapstructure:"database"`
+	JWT           jwtConfig     `mapstructure:"jwt"`
 }
 
 var conf *config
@@ -27,6 +29,10 @@ type clickupConfig struct {
 	ListId string
 }
 
+type jwtConfig struct {
+	Secret string
+}
+
 func (c dbConfig) URI() string {
 	return fmt.Sprintf("postgress://%s:%s@%s/%s?sslmode=disable",
 		c.User, c.Password, c.Host, c.DBName)
@@ -38,6 +44,7 @@ func (c dbConfig) Format() string {
 }
 
 func Setup() {
+	SetupLog()
 	viper.AddConfigPath("./configs")
 	viper.SetConfigName("config")
 	viper.SetConfigType("toml")
@@ -48,9 +55,13 @@ func Setup() {
 		fmt.Println("read config error:", err)
 		panic(err)
 	}
-	fmt.Printf("reading config:%#+v\n", conf)
+	log.Debugf("reading config:%#+v\n", conf)
 }
 
 func Get() *config {
 	return conf
+}
+
+func SetupLog() {
+	log.SetLevel(log.LevelDebug)
 }
